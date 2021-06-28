@@ -1,1 +1,1 @@
-# nginxplus_deviceid
+# nginx_deviceid
