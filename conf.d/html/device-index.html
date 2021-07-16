@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+        <head>
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/foundation/6.3.1/css/foundation.min.css">
+                <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+                <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+                <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+                <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+                <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+
+                <meta charset="utf-8">
+                <title>DeviceID nginx!</title>
+                <style>
+body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+}
+                </style>
+        </head>
+
+        <body>
+                <br>
+                <div class="container" id="loginpage">
+                        <h3>DeviceID / NGINX Plus Top Page</h3>
+                        <div style="float: right">
+                                <v-btn v-if="Object.keys(auth_info).length == 0" type="submit" @click="login">Login</v-btn>
+                                <v-btn v-if="Object.keys(auth_info).length != 0" type="submit" @click="logout">Logout</v-btn>
+                        </div>
+                        <v-divider></v-divider>
+                        <div v-if="Object.keys(auth_info).length != 0">
+                                <h4>Authentication Information</h4>
+                                <v-col v-for="(v , k) in auth_info" >
+                                        <v-btn block small class="my-1">
+                                                {{ k }} : <strong style="color:darkblue">{{ v }}</strong>
+                                        </v-btn>
+                                </v-col>
+                                <v-divider></v-divider>
+                        </div>
+                                <h4>Contents</h4>
+                        <div v-if="Object.keys(auth_info).length != 0" >
+                                        ECHO MAX: <input style = "width: 50pt; background-color: rgb(242, 242, 242) " v-model="echo_max" placeholder="set echo_max here">
+                                        <v-btn small type="submit" @click="echostart">echo start </v-btn>
+                                        <v-btn small type="submit" @click="echostop">echo stop </v-btn>
+                                        <v-btn small type="submit" @click="reload"> reload </v-btn>
+                        <v-card style="font-size=12px; margin: 10px; padding: 10px; background-color: rgb(217, 241, 255)" >
+                                        {{ test_result }}
+                        </v-card >
+                        </div>
+                        <div v-if="Object.keys(auth_info).length == 0" >
+                                <v-card style="font-size=12px; margin: 10px; padding: 10px; background-color: rgb(242, 242, 242)" >
+                                        NO CONTENTS
+                                </v-card>
+                        </div>
+                                        <v-divider></v-divider>
+                        <p><em>Thank you for using nginx.</em></p>
+
+                </div>
+                <script>
+
+const loginurl  = "/device-login.html"
+const logouturl = "/logout"
+const stateurl  = "/state"
+const echourl   = "/echo"
+const a = new Vue({
+        el: '#loginpage',
+        data: {
+                        auth_info: {},
+                        echo_count: 0,
+                        echo_max: 1000,
+                        test_result: '',
+                        error: '',
+                        ciid: ''
+        },
+        mounted () {
+                axios.get(stateurl)
+                        .then((response) => {
+                                if ( Object.keys( response.data).length == 0 || ! response.data.current_user ) {
+                                        this.auth_info ={}
+                                } else {
+                                        this.auth_info = response.data;
+                                        this.auth_info.current_flag = (response.data.current_flag == 1) ? "no limit" : "request limit (1req/sec)";
+                                }
+                        })
+                        .catch((error) => {
+                                console.log('error is occured');
+                                console.log(error);
+                                this.error = "error is occured";
+                        })
+        },
+        methods: {
+                login: function(){
+                        location.href = loginurl;
+                },
+                logout: function(){
+                        location.href = logouturl;
+                },
+                echostart : function(){
+                        let self = this;
+
+                        this.ciid = setInterval ( function( ){
+                                self.echo_count++;
+                                axios.get(echourl)
+                                        .then((response) => {
+                                                self.test_result += "!";
+                                                console.log(self.echo_count+":"+response.data)
+                                        }).catch((error) => {
+                                                self.test_result += "*";
+                                                console.log('error is occured');
+                                                console.log(error);
+                                                this.error = "error is occured";
+                                        })
+                                if (self.echo_count>=self.echo_max) {clearInterval(self.ciid)}
+                        } , 500)
+
+                },
+                echostop : function(){
+                        clearInterval(this.ciid)
+                },
+                reload: function(){
+                        location.href = "/";
+                }
+        } //end of methods
+});
+                </script>
+
+        </body>
+</html>
